@@ -89,17 +89,20 @@ export default class Easel extends React.Component<EaselProps, EaselState>
         super(props);  
         // инициализация стайта  
         this.state = {
-          data: "Данных нет",
+          data: "Данных ещё нет",
           position: StateSquare.Down,
           isLoading: true
         };
         fetch('https://api.exmo.me/v1.1/ticker')
             .then(response => response.json())
             .then((json) => {
-                //console.log(json)
-                this.setState({ data: json.ETH_BTC.buy_price });
+                this.setState({ data: json.result == false ? "Ой, что-то пошло не так" : json.ETH_BTC.buy_price  });
             })
-            .catch((error) => console.error(error))
+            .catch((error) => 
+                {
+                    console.error(error);
+                    this.setState({ data: "Ой, что-то пошло не так" });
+                })
             .finally(() => {
                 this.setState({ isLoading: false });
             });   
