@@ -1,156 +1,71 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import style from './Square.scss'
 
 interface SquareProps {
-    text?: string,
+    text: string,
     random: number,
-    flag: boolean
+    isSingle: boolean
 }
 interface SquareState {
-    data: string,
-    isLoading: boolean
-}
-
-const ousting = 8;
-export function getRandomColor() {
-    var letters = '0123456789ABCDEF';
-    var color = '#';
-    for (var i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  }
-
-  let getPseudoRandom = (random: number, order: number) =>
-    ( random * order) % 255;
-  
-  function getPseudoRandomColor(a: number) {
-    var color = '#';    
-    for (let i = 0; i < 3; i++)
-    {
-        let b = getPseudoRandom(a, i + ousting );
-        color += b > 15 ? b.toString(16) : "0" + b.toString(16);
-    }
-    return color;
-  }
-  function getPseudoRandomColorInvert(a: number) {
-    var color = '#';
-    for (let i = 0; i < 3; i++)
-    {
-        let b = 255 - getPseudoRandom(a, i + ousting);
-        color += b > 15 ? b.toString(16) : "0" + b.toString(16);
-    }
-    return color;
-  }
-  function getTextColor(a: number){    
-    let red = getPseudoRandom(a, ousting );
-    let green = getPseudoRandom(a, ousting + 1);
-    let blue = getPseudoRandom(a, ousting + 2);
-    let l = (red * 0.2126 + green * 0.7152 + blue * 0.0722) / 255;
-    return l > 0.5 ? '#000000' : '#FFFFFF';
-  } 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    //fontSize: 30
-    //alignItems: 'center',
-    //justifyContent: 'center',    
-  },
-  sq20: {
-    position: 'absolute',
-    //top: 0,
-    bottom: 0,
-    //paddingTop: 60
     
-        
+}
+const ousting = 8;
+// генерация псевдо рендомного числа, с учётом выбранного базисного цвета
+let getPseudoRandom = (random: number, baseColor: number) =>
+  ( random * baseColor) % 255;
+// генерация псевдо случайного цвета
+function getPseudoRandomColor(a: number) {
+  var color = '#';    
+  for (let i = 0; i < 3; i++)
+  {
+    let b = getPseudoRandom(a, i + ousting );
+    color += b > 15 ? b.toString(16) : "0" + b.toString(16);
+  }
+  return color;
+}
+// подбор цвета текста в зависимости от случайного цвета, по которому генерировался фон
+function getTextColor(rendom: number){    
+  let red = getPseudoRandom(rendom, ousting );
+  let green = getPseudoRandom(rendom, ousting + 1);
+  let blue = getPseudoRandom(rendom, ousting + 2);
+  let l = (red * 0.2126 + green * 0.7152 + blue * 0.0722) / 255;
+  return l > 0.5 ? '#000000' : '#FFFFFF';
+} 
+const styles = StyleSheet.create({
+  square: {
+    width: 300, 
+    height: 110,
   },
-  sq: {},
-  t20: {fontSize: 10},
-  t: {fontSize: 30}
+  text: {
+    flex: 1,
+    fontSize: 30,
+    textAlign: 'center',
+    textAlignVertical: 'center'    
+  },
+  margin20: {marginBottom: 20},
+  margin0: {marginBottom: 0}
 });
 
-
-
- export default class Square extends React.Component<SquareProps, SquareState> {
-    
+  export default class Square extends React.Component<SquareProps, SquareState> {
     constructor(props: SquareProps) {
       super(props);
-      // инициализация стайта  
-      this.state = {
-        data: "К сожалению, данные ещё не полученны",
-        isLoading: true
-      };
-      // запрос на получене данных о курсе
-      
-      fetch('https://api.exmo.me/v1.1/ticker')
-        .then(response => response.json())
-        .then((json) => {
-            this.setState({ data: /*json.ETH_BTC.buy_price*/'' });
-        })
-        .catch((error) => console.error(error))
-        .finally(() => {
-            this.setState({ isLoading: false });
-        });
-        
     }
-  /*
-    componentDidMount() {
-      fetch('https://reactnative.dev/movies.json')
-        .then((response) => response.json())
-        .then((json) => {
-          this.setState({ data: json.movies });
-        })
-        .catch((error) => console.error(error))
-        .finally(() => {
-          this.setState({ isLoading: false });
-        });
-    }
- 
-    render() {
-      const { data, isLoading } = this.state;
-  
-      return (
-        <View style={{ flex: 1, padding: 24 }}>
-          {isLoading ? <ActivityIndicator/> : (
-            <FlatList
-              data={data}
-              keyExtractor={({ id }, index) => id}
-              renderItem={({ item }) => (
-                <Text>{item.title}, {item.releaseYear}</Text>
-              )}
-            />
-          )}
-        </View>
-      );
-    } */
     render() { 
-        const { data, isLoading } = this.state;
-        const { text, random, flag } = this.props;        
-        let s = flag ? styles.sq20 : styles.sq;
-        let t = flag ? styles.t20 : styles.t;
-        //console.log(random, flag, s, t);
+        const { text, random, isSingle } = this.props; 
+        // корерктировка отсутпов в зависимости от того, квадрат ли это в ряду. или тот, который единственный       
+        let marginBottomStyle = isSingle ? styles.margin0 : styles.margin20;
         return (
             <View style={{  
-              ...s,
-              padding: 20, 
-              margin: 20,
-              width: 300, 
-              height: 200,
-              backgroundColor: getPseudoRandomColor(random),
-              
+              ...marginBottomStyle, 
+              ...styles.square,
+              backgroundColor: getPseudoRandomColor(random), 
                }}>
-                {/*{isLoading ? <Text>Данные ещё не подгруженны</Text> : <Text>{data}</Text>}*/}
-                <Text style = {{
-                    ...styles.container,
-                    ...t, 
-                    backgroundColor: getPseudoRandomColor(random),
-                    color: getTextColor(random)}}
-                    //className={style.square}                    
-                    >
-                       {text} {data} {random}
-                </Text>
-                
+                  <Text style = {{
+                    ...styles.text,
+                    color: getTextColor(random),                     
+                    }}>
+                       {text } 
+                  </Text>                
             </View>
         )
     }

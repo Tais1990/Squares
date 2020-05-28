@@ -1,97 +1,141 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import  Square  from '../Square/Square.tsx'
+import { Platform } from 'react-native'
+import ReactDom from 'react-dom'
+// номер особенного квадрата
+const numberSingle = 19;
+// перечисление с положениями особенного квадрата
+enum StateSquare {
+    Up,
+    Center,
+    Down
+  } 
+// стили
+const styles = StyleSheet.create({
+    easel: {
+        flex: 1,
+        backgroundColor: '#ffffff',
+        alignItems: 'center',
+        marginTop: 20
+    },
+    easel__scrollView: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,        
+    },
+    easel__scrollViewContent: {
+        alignItems: 'center',
+        justifyContent: 'center'
+    }, 
+    singleSquareUp: {
+        position: 'absolute',
+        top: 0 
+    },
+    singleSquareDown: {
+        position: 'absolute',
+        bottom: 0
+    },
+    singleSquareCenter: {
+        display: 'none'
+    }
+});
+// массив со стилями, в ависимости от положения особенного квадрата
+let stylesSingle: {[id: StateSquare] : any} = {};
+stylesSingle[StateSquare.Up] = styles.singleSquareUp;
+stylesSingle[StateSquare.Center] = styles.singleSquareCenter;
+stylesSingle[StateSquare.Down] = styles.singleSquareDown;
 
 interface EaselState {
     data: string,
-    position: boolean
+    position: StateSquare,
+    isLoading: boolean,
+    ySingle: number,
+    yTwenty: number
 }
 interface EaselProps {
-    param: number[]
+    param: number[],
 }
-
 
 export default class Easel extends React.Component<EaselProps, EaselState>
 {
-    
+    elementRef: any = React.createRef();
     changeState(event: Object) {
-        //this.setState({data: event.nativeEvent.contentOffset.y})
-        console.log(event.nativeEvent.contentOffset.y)
-        if (event.nativeEvent.contentOffset.y > 220*19 && this.state.position)
+        // вычисление позиции плавающего квадрата
+        if (this.state.yTwenty && this.state.ySingle && event.nativeEvent.contentOffset.y <= this.state.yTwenty - this.state.ySingle)
         {
-            this.setState({position: false})
+            if (this.state.position != StateSquare.Down)
+            {
+                this.setState({position: StateSquare.Down})
+            }
+            return;
         }
-        if (event.nativeEvent.contentOffset.y <= 220*19 && !this.state.position)
+        if (this.state.yTwenty && event.nativeEvent.contentOffset.y > this.state.yTwenty) 
         {
-            this.setState({position: true})
+            if (this.state.position != StateSquare.Up)
+            {
+                this.setState({position: StateSquare.Up})
+            }
+            return;
+        }
+        if (this.state.position != StateSquare.Center)
+        {
+            this.setState({position: StateSquare.Center})
         }
     }
     constructor(props: EaselProps) {      
         super(props);  
         // инициализация стайта  
         this.state = {
-          data: "-1",
-          position: true
+          data: "Данных нет",
+          position: StateSquare.Down,
+          isLoading: true
         };
+        fetch('https://api.exmo.me/v1.1/ticker')
+            .then(response => response.json())
+            .then((json) => {
+                //console.log(json)
+                this.setState({ data: json.ETH_BTC.buy_price });
+            })
+            .catch((error) => console.error(error))
+            .finally(() => {
+                this.setState({ isLoading: false });
+            });   
         this.changeState = this.changeState.bind(this);
     }
     render() { 
         const { data, position } = this.state; 
         const {param} = this.props;
-        let text = '!!!!';
-        let s = position ? styles.s2 : styles.s1;  
+        let text = data + '\r\n' + Platform.OS; // проверить, как будет на ios        
+        let singleStyle = stylesSingle[position];  
         return (
-            <View style={styles.container}>
-                <ScrollView style={styles.scrollViewStyle} contentContainerStyle={styles.homeView} onScroll={this.changeState} scrollEventThrottle={16}>
-                    {param.map((item, index) => <Square text = {item} key = {index} random = {item} flag = {false}/>)}                             
-                </ScrollView>                
-                <View style={{...s}}>
-                    <Square text = {text}  random = {param[19]} />
+            <View style={styles.easel}>
+                <ScrollView 
+                    style={styles.easel__scrollView} 
+                    contentContainerStyle={styles.easel__scrollViewContent} 
+                    onScroll={this.changeState} scrollEventThrottle={16}>
+                    {param.map((item, index) => 
+                        <View key = {index} 
+                            onLayout={(index == numberSingle)
+                                ? (event: any) => { if (!this.state.yTwenty) { this.setState({yTwenty: event.nativeEvent.layout.y});}} 
+                                : null}>
+                            <Square 
+                                text = {text}                           
+                                random = {item}/>
+                        </View>)}                             
+                </ScrollView> 
+                {/*  Мможно ли данный слой сделать прозрачным для жестов? Т.е. при начале движения с элемента этого слоя делать так, чтобы жест проваливался, до  слоя с меньшим индексом */}              
+                <View style={{...singleStyle}} 
+                    onLayout={(event: any) => { if (!this.state.ySingle) { this.setState({ySingle: event.nativeEvent.layout.y});}} }>
+                    <Square 
+                        text = {text} 
+                        random = {param[numberSingle]} 
+                        isSingle = {true}/>
                 </View>
             </View>
         );
     }
 }
 
-const styles = StyleSheet.create({
- container: {
-   flex: 1,
-   backgroundColor: '#fff',
-   alignItems: 'center',
-   //paddingTop: 60
-   //justifyContent: 'center',
- },
- headerTextStyle: {
-   fontSize: 40,
-   alignSelf: 'center'
-},
-scrollViewStyle: {
-   position: 'absolute',
-   top: 20,
-   bottom: 0,
-   left: 0,
-   right: 0,
-   //paddingTop: 60
-},
-homeView: {
-   alignItems: 'center',
-   justifyContent: 'center'
-},
-textStyle: {
-   fontSize: 96
-},
-mainView: {
-   flex: 1,
-   position: 'relative'
-},
-
-s1: {
-    position: 'absolute',
-    top: 0
-
-},
-s2: {
-    position: 'absolute',
-    bottom: 0
-}
-});
