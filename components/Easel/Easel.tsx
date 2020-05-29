@@ -53,7 +53,8 @@ interface EaselState {
     position: StateSquare,
     isLoading: boolean,
     ySingle: number,
-    yTwenty: number
+    yTwenty: number,
+    timer: any
 }
 interface EaselProps {
     param: number[],
@@ -62,6 +63,7 @@ interface EaselProps {
 export default class Easel extends React.Component<EaselProps, EaselState>
 {
     elementRef: any = React.createRef();
+    // прокрутка
     changeState(event: Object) {
         // вычисление позиции плавающего квадрата
         if (this.state.yTwenty && this.state.ySingle && event.nativeEvent.contentOffset.y <= this.state.yTwenty - this.state.ySingle)
@@ -92,22 +94,37 @@ export default class Easel extends React.Component<EaselProps, EaselState>
           data: "Данных ещё нет",
           position: StateSquare.Down,
           isLoading: true
-        };
-        fetch('https://api.exmo.me/v1.1/ticker')
-            .then(response => response.json())
-            .then((json) => {
-                this.setState({ data: json.result == false ? "Ой, что-то пошло не так" : json.ETH_BTC.buy_price  });
-            })
-            .catch((error) => 
-                {
-                    console.error(error);
-                    this.setState({ data: "Ой, что-то пошло не так" });
-                })
-            .finally(() => {
-                this.setState({ isLoading: false });
-            });   
+        };           
         this.changeState = this.changeState.bind(this);
+        this.tick = this.tick.bind(this);
+        this.tick();
     }
+
+    componentDidMount() {
+        let timer = setInterval(this.tick, 120000);
+        this.setState({timer});
+      }
+    
+      componentWillUnmount() {
+        clearInterval(this.state.timer);
+      }
+    
+      tick() {
+        fetch('https://api.exmo.me/v1.1/ticker')
+        .then(response => response.json())
+        .then((json) => {
+            this.setState({ data: json.result == false ? "Ой, что-то пошло не так" : json.ETH_BTC.buy_price  });
+        })
+        .catch((error) => 
+            {
+                console.error(error);
+                this.setState({ data: "Ой, что-то пошло не так" });
+            })
+        .finally(() => {
+            this.setState({ isLoading: false });
+        }); 
+      }
+
     render() { 
         const { data, position } = this.state; 
         const {param} = this.props;
